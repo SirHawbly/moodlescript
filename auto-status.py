@@ -6,6 +6,7 @@ import csv
 import psycopg2
 import pprint
 import smtplib
+import datetime
 
 # ----------------------------------------------------------------------------- 
 # the location of the db credentials.
@@ -125,20 +126,28 @@ def queryDatabase(credentialFile, query, filename, outputVar):
 # Email Departments about User Progress
 
 def sendEmail(dictionary, key):
+    
+    today = datetime.datetime.now()
+    
     sender = 'cbar@cat.pdx.edu'
     receivers = ['cbar@cat.pdx.edu']
-
     message = """From: Christopher Bartlett <cbar@cat.pdx.edu>
 To: $person <cbar@cat.pdx.edu>
 Subject: Automated SWOS Status Report for """
 
     message += str((dictionary[key])[0])
 
-    header = ["\nQuizName, UserID, LastName, FirstName, Username, Email, Score, PassingScore\
-            Passed (recieved a passing score)",\
+    message += "\nThis is an automated status report for the Student Worker Onboarding System (SWOS)."
+    message += "\nThis email was generated on "  + str(today.year) + "-" + str(today.month) + "-" + str(today.day) \
+            + " at " + str(today.hour) + ":" + str(today.minute)
+    message += "\nIf you need any help please contact support@cat.pdx.edu.\n"
+
+    title = ["\nPassed (recieved a passing score)",\
             "Failed (has yet to pass the quiz)",\
             "Awol (has not tried the quiz yet)",\
             "No Login Data (has not logged into SWOS)"]
+
+    headers = "\tQuizName, UserId, LastName, FirstName, UserName, Email, AttemptScore, PassingScore"
 
     # calculate the length of the entry
     length = 0
@@ -154,14 +163,16 @@ Subject: Automated SWOS Status Report for """
     for entry,ind in zip((dictionary[key])[1:], range(0,4)):
        
         if (len(entry) > 0):
-            message += header[ind] + '\n'
+            message += title[ind] + '\n' + headers + '\n'
         
         # go through all the attempts and decide
         # whether they can be output into the email
         for j in entry:
 
             unique = True
-            
+           
+            # check to see if the user is in the list
+            # of users already reported passing
             with open("passedUsers.csv", 'a+') as inp:
                 reader = csv.reader(inp, delimiter=',')
                 for line in reader: 
@@ -177,6 +188,8 @@ Subject: Automated SWOS Status Report for """
                 with open("passedUsers.csv", 'a+') as outp:
                     writer = csv.writer(outp, delimiter=',')
                     writer.writerow(j)
+
+        message += '\n'
 
     # send the email, if it fails catch the exception
     try:
