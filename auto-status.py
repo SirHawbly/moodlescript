@@ -23,6 +23,15 @@ swosCred = []
 intraCred = []
 
 # ----------------------------------------------------------------------------- 
+# email fields
+
+SENDNAME = 'SWOSreport'
+SENDFROM = 'cbar'
+SENDPDX = '@pdx.edu'
+SENDCECS = '@cecs.pdx.edu'
+SENDCAT = '@cat.pdx.edu'
+
+# ----------------------------------------------------------------------------- 
 # the indecies for the database output.
 
 HOST = 0
@@ -30,9 +39,9 @@ DBNAME = 1
 USER = 2
 PASS = 3
 
-QUIZNAME   = 2
+QUIZNAME = 2
 
-MODULETYPE   = 3
+MODULETYPE = 3
 MODULENAME = 4
 
 ATTEMPTQID = 0
@@ -129,17 +138,17 @@ def sendEmail(dictionary, key):
     
     today = datetime.datetime.now()
     
-    sender = 'cbar@cat.pdx.edu'
-    receivers = ['cbar@cat.pdx.edu']
-    message = """From: Christopher Bartlett <cbar@cat.pdx.edu>
-To: $person <cbar@cat.pdx.edu>
-Subject: Automated SWOS Status Report for """
-
-    message += str((dictionary[key])[0])
+    #{'user', ['user', [passed], [failed], ...]} 
+    
+    sender = str((dictionary[key])[0][0]) + SENDPDX
+    receivers = [SENDFROM+SENDCAT, SENDFROM+SENDCECS]
+    message = """From: {1} <{0}>
+To: {2} <{3}>
+Subject: Automated SWOS Status Report for {1}""".format(sender, str(dictionary[key][0][0]), SENDNAME, receivers[0])
 
     message += "\nThis is an automated status report for the Student Worker Onboarding System (SWOS)."
     message += "\nThis email was generated on "  + str(today.year) + "-" + str(today.month) + "-" + str(today.day) \
-            + " at " + str(today.hour) + ":" + str(today.minute) + " o'clock."
+            + " at " + str(today.hour) + ":" + str(today.minute).zfill(2) + " o'clock.\n"
     message += "\nIf you need any help please contact support@cat.pdx.edu.\n"
 
     title = ["\nPassed (recieved a passing score)",\
