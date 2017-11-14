@@ -2,6 +2,7 @@
 
 # ----------------------------------------------------------------------------- 
 
+import os
 import csv
 import psycopg2
 import pprint
@@ -118,16 +119,7 @@ def queryDatabase(credentialFile, query, filename, outputVar):
 
     # fetch all the output of the command
     outputVar += cur.fetchall()
-
-    # get a tempfile name to write to
-    tempFile = '/tmp/db' + str(filename) + ".csv"
-
-    # output the db entries to tempfile in /tmp
-    with open(tempFile, 'w+') as out:
-        writer = csv.writer(out, delimiter=',')
-        for line in outputVar:
-            writer.writerow(line)
-
+    
     # close the connection
     conn.close()
 
@@ -297,18 +289,6 @@ for quiz in quizData[1:]:
     condenseData += [quizData]
 
 # ----------------------------------------------------------------------------- 
-# Print out the results to a file 
-
-# get a tempfile name to write to
-tempFile = '/tmp/db' + "condenseData" + ".csv"
-
-# output the db entries to tempfile in /tmp
-with open(tempFile, 'w+') as out:
-    writer = csv.writer(out, delimiter=',')
-    for line in condenseData:
-        writer.writerow(line)
-
-# ----------------------------------------------------------------------------- 
 # Print out the results of the queries 
 
 """
@@ -374,5 +354,6 @@ for user in sourceData[1:]:
 
 for i in OutputData:
     sendEmail(OutputData, i)
+
 
 
