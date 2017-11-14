@@ -139,7 +139,7 @@ Subject: Automated SWOS Status Report for """
 
     message += "\nThis is an automated status report for the Student Worker Onboarding System (SWOS)."
     message += "\nThis email was generated on "  + str(today.year) + "-" + str(today.month) + "-" + str(today.day) \
-            + " at " + str(today.hour) + ":" + str(today.minute)
+            + " at " + str(today.hour) + ":" + str(today.minute) + " o'clock."
     message += "\nIf you need any help please contact support@cat.pdx.edu.\n"
 
     title = ["\nPassed (recieved a passing score)",\
@@ -147,37 +147,33 @@ Subject: Automated SWOS Status Report for """
             "Awol (has not tried the quiz yet)",\
             "No Login Data (has not logged into SWOS)"]
 
-    headers = "\tQuizName, UserId, LastName, FirstName, UserName, Email, AttemptScore, PassingScore"
-
-    # calculate the length of the entry
-    length = 0
-    for entry in dictionary[key]:
-        length += len(entry)
-
-    # if the length is 1, than its just the 
-    # source (dont send an email no users remain)
-    if (length <= 1):
-        return
+    headers = "\tQuizName, UserId, LastName, FirstName, UserName, Email, AttemptScore, PassingScore\n\
+\t------------------------------------------------------------------------------------------------------------------------------------"
 
     # print out all user attempts and headers
     for entry,ind in zip((dictionary[key])[1:], range(0,4)):
-       
-        if (len(entry) > 0):
-            message += title[ind] + '\n' + headers + '\n'
+    
+        message += title[ind] + '\n' + headers + '\n'
+        
+        length = len(message)
         
         # go through all the attempts and decide
         # whether they can be output into the email
         for j in entry:
-
+           
+            # variable to see if an entry is to be added
             unique = True
            
             # check to see if the user is in the list
             # of users already reported passing
             with open("passedUsers.csv", 'a+') as inp:
                 reader = csv.reader(inp, delimiter=',')
-                for line in reader: 
-                    if (j == line[5]):
-                        unique = False 
+                for line in reader:
+                   
+                    # test if both emails are equal
+                    # both email locations are at 5
+                    if (j[5] == line[5]):
+                        unique = False
 
                 if (unique):
                     message += '\t' + str(j) + '\n'
@@ -188,8 +184,12 @@ Subject: Automated SWOS Status Report for """
                 with open("passedUsers.csv", 'a+') as outp:
                     writer = csv.writer(outp, delimiter=',')
                     writer.writerow(j)
+        
+        # if nothing was added to the message, print "none"
+        if (length == len(message)):
+            message += '\tNONE\n'
 
-        message += '\n'
+        message += '\n\n'
 
     # send the email, if it fails catch the exception
     try:
