@@ -95,6 +95,14 @@ getSource  = """select last_name,first_name,email,dept,source from stuwork;"""
 # functions
 # ----------------------------------------------------------------------------- 
 
+def writeToFile(filename, variable):
+    with open('db' + filename + '.csv', 'w') as out:
+        writer = csv.writer(out)
+        for line in variable:
+            writer.writerow(line)
+
+# ----------------------------------------------------------------------------- 
+
 def queryDatabase(credentialFile, query, filename, outputVar):
     
     # variable to store credentials
@@ -120,6 +128,8 @@ def queryDatabase(credentialFile, query, filename, outputVar):
     # fetch all the output of the command
     outputVar += cur.fetchall()
     
+    writeToFile(filename, outputVar)
+
     # close the connection
     conn.close()
 
@@ -228,6 +238,7 @@ queryDatabase(intranet, getSource, "sourceInfo", sourceData)
 # Generate Student Output
 
 condenseData = []
+condenseDict = {}
 
 # for all quizzes (skipping the headerline)...
 for quiz in quizData[1:]:
@@ -247,7 +258,6 @@ for quiz in quizData[1:]:
     # failed, not attempted, and not logged in.
     quizData += [quiz[QUIZNAME], [], [], [], []]
     
-    # get the user name, name and email 
     # for the given attempt (skip Headers)
     for user in loginData[1:]:
        
@@ -352,8 +362,8 @@ for user in sourceData[1:]:
 # ----------------------------------------------------------------------------- 
 # Email all User Sources
 
-for i in OutputData:
-    sendEmail(OutputData, i)
+#for i in OutputData:
+    #sendEmail(OutputData, i)
 
 
 
