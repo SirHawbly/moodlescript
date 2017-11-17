@@ -238,6 +238,8 @@ queryDatabase(intranet, getSource, "sourceInfo", sourceData)
 # Generate Student Output
 
 condenseData = []
+
+#NEW
 condenseDict = {}
 
 # for all quizzes (skipping the headerline)...
@@ -245,7 +247,10 @@ for quiz in quizData[1:]:
 
     quizData     = []
     passingScore = 0.0
-    
+
+    #NEW
+    condenseDict[quiz[QUIZNAME]] = {}
+
     # find the right entry/score, check that the item is a quiz,
     # and has the same name as the current quiz (skip headers)
     for entry in moduleData[1:]:
@@ -254,10 +259,17 @@ for quiz in quizData[1:]:
             passingScore = entry[PASSINGSCORE]
             break
 
+    #NEW
+    (condenseDict[quiz[QUIZNAME]])['passingScore'] = passingScore 
+    condenseDict[quiz[QUIZNAME]]['quizName'] = str(quiz[QUIZNAME]) 
+
+    for user in ['passedUsers', 'failedUsers', 'awolUsers', 'noLogUsers']:
+        condenseDict[quiz[QUIZNAME]][user] = {}
+
     # create an item for the quiz, containing who has passed, 
     # failed, not attempted, and not logged in.
     quizData += [quiz[QUIZNAME], [], [], [], []]
-    
+   
     # for the given attempt (skip Headers)
     for user in loginData[1:]:
        
@@ -268,36 +280,57 @@ for quiz in quizData[1:]:
         # set the data variable to contain all user info
         data = [user[USERUID], user[USERLAST], user[USERFIRST], user[USERUNAME], user[USERMAIL]]
         
+        #NEW
+        d = {'uid': user[USERUID], 
+            'uname': user[USERUNAME], 
+            'lastname': user[USERLAST], 
+            'firstname': user[USERFIRST], 
+            'email': user[USERMAIL]}
+        
         # for all attempts (skipping the headerline) 
         # check to see that they are on the current quiz,
         # then check their score with the passingScore
         for attempt in attemptData[1:]:
             if (attempt[ATTEMPTUID] == user[USERUID]):
                 if (attempt[ATTEMPTQID] == quiz[QUIZQID]):
-                   
+ 
+                    #NEW
+                    d['attemptScore'] = attempt[ATTEMPTSCORE]
+                    
+                    found = True
+
                     # if their score is higher, they go into the first list
                     if (attempt[ATTEMPTSCORE] >= passingScore):
                         quizData[DATAPASS] += [data + [int(attempt[ATTEMPTSCORE])] + [int(passingScore)],]
-                        found = True
+                        userField = 'passedUsers'
+                    
                     # else they go into the second list (not yet passed)
                     else:
                         quizData[DATAFAIL] += [data + [int(attempt[ATTEMPTSCORE])] + [int(passingScore)],]
-                        found = True
+                        userField = 'failedUsers'
 
         # if found is false, we need to add them to the other lists
         if (found == False):
-
+            
             # if the users login time is greater than zero
             # add them to the users that are AWOL (no quiz attempts).
             if (user[USERLOG] > 0):
                 quizData[DATAAWOL] += [data]
+                userField = 'awolUsers'
             # else they havent gotten on the quizsite
             else:
                 quizData[DATANLOG] += [data]
+                userField = 'noLogUsers'
+
+        condenseDict[quiz[QUIZNAME]][userField][d['uid']] = d 
 
     # add the quiz data to the list for all attempts
     condenseData += [quizData]
 
+
+
+#NEW
+print(condenseDict)
 # ----------------------------------------------------------------------------- 
 # Print out the results of the queries 
 
