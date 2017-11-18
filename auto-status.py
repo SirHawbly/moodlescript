@@ -49,6 +49,7 @@ MODULENAME = 4
 ATTEMPTQID = 0
 ATTEMPTUID = 1
 ATTEMPTSCORE = 2
+ATTEMPTTIME = 3
 
 USERUID = 0
 USERLAST = 1
@@ -68,6 +69,13 @@ DATAFAIL = 2
 DATAAWOL = 3
 DATANLOG = 4
 
+passedUsers = 'passedUsers'
+failedUsers = 'failedUsers'
+awolUsers = 'awolUsers'
+noLogUsers = 'noLogUsers'
+
+userGroups = [passedUsers, failedUsers, awolUsers, noLogUsers]
+
 # ----------------------------------------------------------------------------- 
 # specific queries for databases
 
@@ -77,8 +85,8 @@ getLastLogin = """select id,lastname,firstname,username,email,lastlogin \
                     from public.mdl_user where email like '%@pdx.edu'"""
 
 # pull all headers from moodle quiz grades
-AllAttempts    =    ["quizid","userid","grade"]
-getAllAttempts =  """select quiz,userid,grade from public.mdl_quiz_grades"""
+AllAttempts    =    ["quizid","userid","grade","timemodified"]
+getAllAttempts =  """select quiz,userid,grade,timemodified from public.mdl_quiz_grades"""
 
 # pull the all quiz info (id, course, name, grade)
 QuizInfo    =    ["quizid","course","quizname","grade"]
@@ -264,8 +272,8 @@ for quiz in quizData[1:]:
     condenseDict[quiz[QUIZNAME]]['passingScore'] = passingScore 
     condenseDict[quiz[QUIZNAME]]['quizName'] = str(quiz[QUIZNAME]) 
 
-    for user in ['passedUsers', 'failedUsers', 'awolUsers', 'noLogUsers']:
-        condenseDict[quiz[QUIZNAME]][user] = {}
+    for userGroup in userGroups:
+        condenseDict[quiz[QUIZNAME]][userGroup] = {}
 
     # create an item for the quiz, containing who has passed, 
     # failed, not attempted, and not logged in.
@@ -286,7 +294,8 @@ for quiz in quizData[1:]:
             'uname': user[USERUNAME], 
             'lastname': user[USERLAST], 
             'firstname': user[USERFIRST], 
-            'email': user[USERMAIL]}
+            'email': user[USERMAIL],
+            'lastlog': int(user[USERLOG])}
         
         # for all attempts (skipping the headerline) 
         # check to see that they are on the current quiz,
@@ -294,44 +303,57 @@ for quiz in quizData[1:]:
         for attempt in attemptData[1:]:
             if (attempt[ATTEMPTUID] == user[USERUID]):
                 if (attempt[ATTEMPTQID] == quiz[QUIZQID]):
- 
+
+                    print(user, attempt)
+
                     #NEW
-                    d['attemptScore'] = attempt[ATTEMPTSCORE]
+                    d['attemptScore'] = int(attempt[ATTEMPTSCORE])
+                    d['attemptTime']  = attempt[ATTEMPTTIME]
                     
                     found = True
-
+                    
                     # if their score is higher, they go into the first list
                     if (attempt[ATTEMPTSCORE] >= passingScore):
                         quizData[DATAPASS] += [data + [int(attempt[ATTEMPTSCORE])] + [int(passingScore)],]
-                        userField = 'passedUsers'
+                        userField = passedUsers
                     
                     # else they go into the second list (not yet passed)
                     else:
                         quizData[DATAFAIL] += [data + [int(attempt[ATTEMPTSCORE])] + [int(passingScore)],]
-                        userField = 'failedUsers'
+                        userField = failedUsers
 
         # if found is false, we need to add them to the other lists
         if (found == False):
-            
+
             # if the users login time is greater than zero
             # add them to the users that are AWOL (no quiz attempts).
             if (user[USERLOG] > 0):
                 quizData[DATAAWOL] += [data]
-                userField = 'awolUsers'
+                userField = awolUsers
+
             # else they havent gotten on the quizsite
             else:
                 quizData[DATANLOG] += [data]
-                userField = 'noLogUsers'
+                userField = noLogUsers
 
+        #NEW
         condenseDict[quiz[QUIZNAME]][userField][d['uid']] = d 
 
     # add the quiz data to the list for all attempts
     condenseData += [quizData]
 
-
-
-#NEW
-print(condenseDict)
+#NEW 
+# print the lengths of the lists
+"""
+for quiz in condenseDict:
+    for userGroup in userGroups:
+        print(len(condenseDict[quiz][userGroup]))
+"""
+"""
+for quiz in condenseData:
+    for i in range(1,5):
+        print("\t" + str(len(quiz[i])))
+"""
 # ----------------------------------------------------------------------------- 
 # Print out the results of the queries 
 
@@ -386,6 +408,14 @@ for user in sourceData[1:]:
                     # put that data into the the output data in the right list
                     (OutputData[user[4]])[i] += [[quiz[0]] + attempt]
 
+#NEW
+"""
+for user in sourceData[1:]:
+    for quiz in condenseDict:
+        for userGroup in userGroups:
+            print("")
+"""
+
 # ----------------------------------------------------------------------------- 
 # Print the Dictionary
 
@@ -399,5 +429,5 @@ for user in sourceData[1:]:
 #for i in OutputData:
     #sendEmail(OutputData, i)
 
+#print(json.JSONEncoder().encode(condenseDict))
 
-print(json.JSONEncoder().encode(condenseDict))
