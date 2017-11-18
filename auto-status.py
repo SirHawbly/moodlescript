@@ -8,6 +8,7 @@ import psycopg2
 import pprint
 import smtplib
 import datetime
+import json
 
 # ----------------------------------------------------------------------------- 
 # the location of the db credentials.
@@ -207,9 +208,9 @@ Subject: Automated SWOS Status Report for {1}""".format(sender, SENDTO, SENDNAME
     try:
         smtpObj = smtplib.SMTP('localhost')
         smtpObj.sendmail(sender, receivers, message)         
-        print "Successfully sent email"
+        print ("Successfully sent email")
     except SMTPException:
-        print "Error: unable to send email"
+        print ("Error: unable to send email")
 
 # ----------------------------------------------------------------------------- 
 # Query all the Databases
@@ -260,7 +261,7 @@ for quiz in quizData[1:]:
             break
 
     #NEW
-    (condenseDict[quiz[QUIZNAME]])['passingScore'] = passingScore 
+    condenseDict[quiz[QUIZNAME]]['passingScore'] = passingScore 
     condenseDict[quiz[QUIZNAME]]['quizName'] = str(quiz[QUIZNAME]) 
 
     for user in ['passedUsers', 'failedUsers', 'awolUsers', 'noLogUsers']:
@@ -399,4 +400,4 @@ for user in sourceData[1:]:
     #sendEmail(OutputData, i)
 
 
-
+print(json.JSONEncoder().encode(condenseDict))
