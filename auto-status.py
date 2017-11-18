@@ -337,7 +337,8 @@ for quiz in quizData[1:]:
                 userField = noLogUsers
 
         #NEW
-        condenseDict[quiz[QUIZNAME]][userField][d['uid']] = d 
+        d['userGroup'] = userField
+        condenseDict[quiz[QUIZNAME]][d['uid']] = d 
 
     # add the quiz data to the list for all attempts
     condenseData += [quizData]
@@ -378,14 +379,19 @@ print("\n\n")
 # create a list of users that where recorded
 # as adding someone to the Moodle
 sourceUsers = []
+OutputData = {}
 
 for source in sourceData[1:]:
     if source[4] not in sourceUsers:
         sourceUsers += [source[4]]
 
-# print(sourceUsers)
+for source in sourceData[1:]:
+    for quiz in condenseDict:
+        for entry in condenseDict[quiz]:
+            if (['email'] == source[2]):
+                OutputData[source[4]] = entry
 
-OutputData = {}
+# print(sourceUsers)
 
 for source in sourceUsers:
     OutputData[source] = [[source], [],[],[],[]]
