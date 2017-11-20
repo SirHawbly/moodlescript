@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # ----------------------------------------------------------------------------- 
 
@@ -101,6 +101,22 @@ Source     = ["last_name", "first_name", "email", "dept", "source"]
 getSource  = """select last_name,first_name,email,dept,source from stuwork;"""
 
 # ----------------------------------------------------------------------------- 
+# Classes
+# ----------------------------------------------------------------------------- 
+
+# encode decimals in json 
+# SRC: 
+# https://stackoverflow.com/questions/1960516/python-json-serialize-a-decimal-object
+class DecimalEncoder(json.JSONEncoder):
+    def _iterencode(self, o, markers=None):
+        if isinstance(o, decimal.Decimal):
+            # wanted a simple yield str(o) in the next line,
+            # but that would mean a yield on the line with super(...),
+            # which wouldn't work (see my comment below), so...
+            return (str(o) for o in [o])
+        return super(DecimalEncoder, self)._iterencode(o, markers)
+
+# ----------------------------------------------------------------------------- 
 # functions
 # ----------------------------------------------------------------------------- 
 
@@ -119,7 +135,7 @@ def queryDatabase(credentialFile, query, filename, outputVar):
 
     # open up the credentials file, pull the first item on each row
     # and save those into the cred variable
-    with open(credentialFile, 'rb') as csvfile:
+    with open(credentialFile, 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter=',')
         for row in reader:
             cred += row
@@ -269,11 +285,8 @@ for quiz in quizData[1:]:
             break
 
     #NEW
-    condenseDict[quiz[QUIZNAME]]['passingScore'] = passingScore 
+    condenseDict[quiz[QUIZNAME]]['passingScore'] = float(passingScore)
     condenseDict[quiz[QUIZNAME]]['quizName'] = str(quiz[QUIZNAME]) 
-
-    for userGroup in userGroups:
-        condenseDict[quiz[QUIZNAME]][userGroup] = {}
 
     # create an item for the quiz, containing who has passed, 
     # failed, not attempted, and not logged in.
@@ -295,7 +308,7 @@ for quiz in quizData[1:]:
             'lastname': user[USERLAST], 
             'firstname': user[USERFIRST], 
             'email': user[USERMAIL],
-            'lastlog': int(user[USERLOG])}
+            'lastlog': float(user[USERLOG])}
         
         # for all attempts (skipping the headerline) 
         # check to see that they are on the current quiz,
@@ -304,10 +317,10 @@ for quiz in quizData[1:]:
             if (attempt[ATTEMPTUID] == user[USERUID]):
                 if (attempt[ATTEMPTQID] == quiz[QUIZQID]):
 
-                    print(user, attempt)
+                    #print(user, attempt)
 
                     #NEW
-                    d['attemptScore'] = int(attempt[ATTEMPTSCORE])
+                    d['attemptScore'] = float(attempt[ATTEMPTSCORE])
                     d['attemptTime']  = attempt[ATTEMPTTIME]
                     
                     found = True
@@ -398,6 +411,8 @@ for source in sourceUsers:
 
 # print(OutputData)
 
+outputDict = {}
+
 # ----------------------------------------------------------------------------- 
 
 # for all the people that added people, add people they added 
@@ -414,13 +429,21 @@ for user in sourceData[1:]:
                     # put that data into the the output data in the right list
                     (OutputData[user[4]])[i] += [[quiz[0]] + attempt]
 
+
 #NEW
-"""
 for user in sourceData[1:]:
     for quiz in condenseDict:
-        for userGroup in userGroups:
-            print("")
-"""
+        
+        # for the added by field
+        outputDict[user[4]] = {}
+        
+        for attempt in condenseDict[quiz]:
+            
+            outputDict[user[4]][quiz] = {}
+            
+            for userGroup in userGroups:
+
+                outputDict[user[4]][quiz][userGroup] = [[attempt],]
 
 # ----------------------------------------------------------------------------- 
 # Print the Dictionary
@@ -435,5 +458,14 @@ for user in sourceData[1:]:
 #for i in OutputData:
     #sendEmail(OutputData, i)
 
-#print(json.JSONEncoder().encode(condenseDict))
+#print(json.dumps(condenseDict))
 
+print(condenseDict)
+
+for quiz in condenseDict:
+    for attempt in condenseDict[quiz]:
+        print (attempt)
+
+#print(json.dumps(outputDict))
+
+# ----------------------------------------------------------------------------- 
