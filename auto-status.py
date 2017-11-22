@@ -393,43 +393,18 @@ print("\n\n")
 # create a list of users that where recorded
 # as adding someone to the Moodle
 sourceUsers = []
-OutputData = {}
 
 for source in sourceData[1:]:
     if source[4] not in sourceUsers:
         sourceUsers += [source[4]]
 
-for source in sourceData[1:]:
-    for quiz in condenseDict:
-        for entry in condenseDict[quiz]:
-            if (['email'] == source[2]):
-                OutputData[source[4]] = entry
-
 # print(sourceUsers)
-
-for source in sourceUsers:
-    OutputData[source] = [[source], [],[],[],[]]
 
 # print(OutputData)
 
 outputDict = {}
 
 # ----------------------------------------------------------------------------- 
-
-# for all the people that added people, add people they added 
-# to a dictionary in the same format as the condensed data
-for user in sourceData[1:]:    
-    for quiz in condenseData:
-
-        # for the passed, failed, awol, and nolog lists in quiz...
-        for i in range(1,4):
-            for attempt in quiz[i]:
-                # if the user was added by someone on the list...
-                if (user[2] == attempt[4]):
-
-                    # put that data into the the output data in the right list
-                    (OutputData[user[4]])[i] += [[quiz[0]] + attempt]
-
 
 #print(condenseDict)
 
@@ -480,13 +455,6 @@ for i in outputDict:
         print (i,": ",outputDict[i][quiz], ' -> ')
         for userGroup in userGroups:
             print (' ', len(outputDict[i][quiz][userGroup]))
-
-print('outputData')
-
-for i in OutputData:
-    print (i, ' -> ')
-    for j in range(1,5):
-        print (' ', len(OutputData[i][j]))
 
 with open('output.json', 'w+') as outfile:
     json.dump(outputDict, outfile)
