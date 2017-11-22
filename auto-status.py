@@ -16,11 +16,8 @@ swosqz   = 'swosqz.csv'
 intranet = 'intranet.csv'
 
 # ----------------------------------------------------------------------------- 
-# location of the scores csv
-scores = '/tmp/scores.csv'
-
-# ----------------------------------------------------------------------------- 
 # empty list for holding the db credentials.
+
 swosCred = []
 intraCred = []
 
@@ -101,22 +98,6 @@ Source     = ["last_name", "first_name", "email", "dept", "source"]
 getSource  = """select last_name,first_name,email,dept,source from stuwork;"""
 
 # ----------------------------------------------------------------------------- 
-# Classes
-# ----------------------------------------------------------------------------- 
-
-# encode decimals in json 
-# SRC: 
-# https://stackoverflow.com/questions/1960516/python-json-serialize-a-decimal-object
-class DecimalEncoder(json.JSONEncoder):
-    def _iterencode(self, o, markers=None):
-        if isinstance(o, decimal.Decimal):
-            # wanted a simple yield str(o) in the next line,
-            # but that would mean a yield on the line with super(...),
-            # which wouldn't work (see my comment below), so...
-            return (str(o) for o in [o])
-        return super(DecimalEncoder, self)._iterencode(o, markers)
-
-# ----------------------------------------------------------------------------- 
 # functions
 # ----------------------------------------------------------------------------- 
 
@@ -159,84 +140,6 @@ def queryDatabase(credentialFile, query, filename, outputVar):
     conn.close()
 
 # ----------------------------------------------------------------------------- 
-# Email Departments about User Progress
-
-def sendEmail(dictionary, key):
-    
-    today = datetime.datetime.now()
-    
-    #{'user', ['user', [passed], [failed], ...]} 
-    SENDTO = str((dictionary[key])[0][0])
-
-    sender = SENDTO + SENDCECS
-    receivers = [SENDFROM+SENDCECS]
-    message = """From: {1} <{0}>
-To: {2} <{3}>
-Subject: Automated SWOS Status Report for {1}""".format(sender, SENDTO, SENDNAME, receivers[0])
-
-    message += "\nThis is an automated status report for the Student Worker Onboarding System (SWOS)."
-    message += "\nThis email was generated on {0:%Y-%m-%d at %I:%M %p}".format(today)
-
-    message += "\nIf you need any help please contact support@cat.pdx.edu.\n"
-
-    title = ["\nPassed (recieved a passing score)",\
-            "Failed (has yet to pass the quiz)",\
-            "Awol (has not tried the quiz yet)",\
-            "No Login Data (has not logged into SWOS)"]
-
-    headers = "\tQuizName, UserId, LastName, FirstName, UserName, Email, AttemptScore, PassingScore\n\
-\t------------------------------------------------------------------------------------------------------------------------------------"
-
-    # print out all user attempts and headers
-    for entry,ind in zip((dictionary[key])[1:], range(0,4)):
-    
-        message += title[ind] + '\n' + headers + '\n'
-        
-        length = len(message)
-        
-        # go through all the attempts and decide
-        # whether they can be output into the email
-        for j in entry:
-           
-            # variable to see if an entry is to be added
-            unique = True
-           
-            # check to see if the user is in the list
-            # of users already reported passing
-            with open("passedUsers.csv", 'a+') as inp:
-                reader = csv.reader(inp, delimiter=',')
-                for line in reader:
-                   
-                    # test if both emails are equal
-                    # both email locations are at 5
-                    if (j[5] == line[5]):
-                        unique = False
-
-                if (unique):
-                    message += '\t' + str(j) + '\n'
-
-            # if this is the people that passed the quiz save 
-            # all of their entries so they are never spammed again
-            if (ind == 0 and unique == True): 
-                with open("passedUsers.csv", 'a+') as outp:
-                    writer = csv.writer(outp, delimiter=',')
-                    writer.writerow(j)
-        
-        # if nothing was added to the message, print "none"
-        if (length == len(message)):
-            message += '\tNONE\n'
-
-        message += '\n\n'
-
-    # send the email, if it fails catch the exception
-    try:
-        smtpObj = smtplib.SMTP('localhost')
-        smtpObj.sendmail(sender, receivers, message)         
-        print ("Successfully sent email")
-    except SMTPException:
-        print ("Error: unable to send email")
-
-# ----------------------------------------------------------------------------- 
 # Query all the Databases
 
 # Get Login Data from Swosqz
@@ -262,18 +165,12 @@ queryDatabase(intranet, getSource, "sourceInfo", sourceData)
 # ----------------------------------------------------------------------------- 
 # Generate Student Output
 
-condenseData = []
-
-#NEW
 condenseDict = {}
 
 # for all quizzes (skipping the headerline)...
 for quiz in quizData[1:]:
 
-    quizData     = []
     passingScore = 0.0
-
-    #NEW
     condenseDict[quiz[QUIZNAME]] = {}
 
     # find the right entry/score, check that the item is a quiz,
@@ -284,14 +181,9 @@ for quiz in quizData[1:]:
             passingScore = entry[PASSINGSCORE]
             break
 
-    #NEW
     condenseDict[quiz[QUIZNAME]]['passingScore'] = float(passingScore)
     condenseDict[quiz[QUIZNAME]]['quizName'] = str(quiz[QUIZNAME]) 
     condenseDict[quiz[QUIZNAME]]['attempts'] = {} 
-
-    # create an item for the quiz, containing who has passed, 
-    # failed, not attempted, and not logged in.
-    quizData += [quiz[QUIZNAME], [], [], [], []]
    
     # for the given attempt (skip Headers)
     for user in loginData[1:]:
@@ -303,7 +195,6 @@ for quiz in quizData[1:]:
         # set the data variable to contain all user info
         data = [user[USERUID], user[USERLAST], user[USERFIRST], user[USERUNAME], user[USERMAIL]]
         
-        #NEW
         d = {'uid': user[USERUID], 
             'uname': user[USERUNAME], 
             'lastname': user[USERLAST], 
@@ -318,9 +209,6 @@ for quiz in quizData[1:]:
             if (attempt[ATTEMPTUID] == user[USERUID]):
                 if (attempt[ATTEMPTQID] == quiz[QUIZQID]):
 
-                    #print(user, attempt)
-
-                    #NEW
                     d['attemptScore'] = float(attempt[ATTEMPTSCORE])
                     d['attemptTime']  = attempt[ATTEMPTTIME]
                     
@@ -328,12 +216,10 @@ for quiz in quizData[1:]:
                     
                     # if their score is higher, they go into the first list
                     if (attempt[ATTEMPTSCORE] >= passingScore):
-                        quizData[DATAPASS] += [data + [int(attempt[ATTEMPTSCORE])] + [int(passingScore)],]
                         userField = passedUsers
                     
                     # else they go into the second list (not yet passed)
                     else:
-                        quizData[DATAFAIL] += [data + [int(attempt[ATTEMPTSCORE])] + [int(passingScore)],]
                         userField = failedUsers
 
         # if found is false, we need to add them to the other lists
@@ -342,50 +228,15 @@ for quiz in quizData[1:]:
             # if the users login time is greater than zero
             # add them to the users that are AWOL (no quiz attempts).
             if (user[USERLOG] > 0):
-                quizData[DATAAWOL] += [data]
                 userField = awolUsers
 
             # else they havent gotten on the quizsite
             else:
-                quizData[DATANLOG] += [data]
                 userField = noLogUsers
 
-        #NEW
         d['group'] = userField
         condenseDict[quiz[QUIZNAME]]['attempts'][d['uid']] = d 
 
-    # add the quiz data to the list for all attempts
-    condenseData += [quizData]
-
-#NEW 
-# print the lengths of the lists
-"""
-for quiz in condenseDict:
-    for userGroup in userGroups:
-        print(len(condenseDict[quiz][userGroup]))
-"""
-"""
-for quiz in condenseData:
-    for i in range(1,5):
-        print("\t" + str(len(quiz[i])))
-"""
-# ----------------------------------------------------------------------------- 
-# Print out the results of the queries 
-
-"""
-print(condenseData)
-
-for quiz in condenseData:
-
-    print(str(quiz[0]))
-
-    print("\tPassed:\n\t"           + str(quiz[1]))
-    print("\tFailed:\n\t"           + str(quiz[2]))
-    print("\tNot Attempted:\n\t"    + str(quiz[3]))
-    print("\tNoLogin:\n\t"          + str(quiz[4]))
-
-print("\n\n")
-"""
 
 # ----------------------------------------------------------------------------- 
 # Put the users into dictionaries
@@ -398,17 +249,13 @@ for source in sourceData[1:]:
     if source[4] not in sourceUsers:
         sourceUsers += [source[4]]
 
-# print(sourceUsers)
+# ----------------------------------------------------------------------------- 
 
-# print(OutputData)
+# {'quiz': {'pcore': 17, 'attempts': {'name':ricky, 'score':18}}}
+# {'whoadd', {'quiz': thing, {'passed': {'name': ricky,}, 'failed':{}, 'awol':{}, ...}}}
 
 outputDict = {}
 
-# ----------------------------------------------------------------------------- 
-
-#print(condenseDict)
-
-#NEW
 for user in sourceData[1:]:
     outputDict[user[4]] = {}
     for quiz in condenseDict:
@@ -419,42 +266,14 @@ for user in sourceData[1:]:
 
 
 for user in sourceData[1:]:
-   
-    #print(user[4])
-    
     for quiz in condenseDict:
-        
         for uid in condenseDict[quiz]['attempts']:
-            
-            #print(condenseDict[quiz]['attempts'][uid])
-
             if (user[2] == condenseDict[quiz]['attempts'][uid]['email']):  
                 for userGroup in userGroups: 
                     if (condenseDict[quiz]['attempts'][uid]['group'] == userGroup):
                         outputDict[user[4]][quiz][userGroup][uid] = condenseDict[quiz]['attempts'][uid]
 
 # ----------------------------------------------------------------------------- 
-# Print the Dictionary
-
-# print all of the entries in the dictionary (with keys)
-# for key,entry in OutputData.items():
-    # pprint.pprint(str(key) + "\n" + str(entry))
-
-# ----------------------------------------------------------------------------- 
-# Email all User Sources
-
-#for i in OutputData:
-    #sendEmail(OutputData, i)
-
-#print(json.dumps(condenseDict))
-
-print('outputDict')
-
-for i in outputDict:
-    for quiz in outputDict[i]:
-        print (i,": ",outputDict[i][quiz], ' -> ')
-        for userGroup in userGroups:
-            print (' ', len(outputDict[i][quiz][userGroup]))
 
 with open('output.json', 'w+') as outfile:
     json.dump(outputDict, outfile)
