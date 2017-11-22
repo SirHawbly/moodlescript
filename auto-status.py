@@ -431,7 +431,7 @@ for user in sourceData[1:]:
                     (OutputData[user[4]])[i] += [[quiz[0]] + attempt]
 
 
-print(condenseDict)
+#print(condenseDict)
 
 #NEW
 for user in sourceData[1:]:
@@ -445,13 +445,13 @@ for user in sourceData[1:]:
 
 for user in sourceData[1:]:
    
-    print(user[4])
+    #print(user[4])
     
     for quiz in condenseDict:
         
         for uid in condenseDict[quiz]['attempts']:
             
-            print(condenseDict[quiz]['attempts'][uid])
+            #print(condenseDict[quiz]['attempts'][uid])
 
             if (user[2] == condenseDict[quiz]['attempts'][uid]['email']):  
                 for userGroup in userGroups: 
@@ -473,10 +473,20 @@ for user in sourceData[1:]:
 
 #print(json.dumps(condenseDict))
 
-# print(outputDict)
+print('outputDict')
 
+for i in outputDict:
+    for quiz in outputDict[i]:
+        print (i,": ",outputDict[i][quiz], ' -> ')
+        for userGroup in userGroups:
+            print (' ', len(outputDict[i][quiz][userGroup]))
 
-#print(condenseDict)
+print('outputData')
+
+for i in OutputData:
+    print (i, ' -> ')
+    for j in range(1,5):
+        print (' ', len(OutputData[i][j]))
 
 with open('output.json', 'w+') as outfile:
     json.dump(outputDict, outfile)
