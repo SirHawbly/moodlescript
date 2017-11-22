@@ -287,6 +287,7 @@ for quiz in quizData[1:]:
     #NEW
     condenseDict[quiz[QUIZNAME]]['passingScore'] = float(passingScore)
     condenseDict[quiz[QUIZNAME]]['quizName'] = str(quiz[QUIZNAME]) 
+    condenseDict[quiz[QUIZNAME]]['attempts'] = {} 
 
     # create an item for the quiz, containing who has passed, 
     # failed, not attempted, and not logged in.
@@ -350,8 +351,8 @@ for quiz in quizData[1:]:
                 userField = noLogUsers
 
         #NEW
-        d['userGroup'] = userField
-        condenseDict[quiz[QUIZNAME]][d['uid']] = d 
+        d['group'] = userField
+        condenseDict[quiz[QUIZNAME]]['attempts'][d['uid']] = d 
 
     # add the quiz data to the list for all attempts
     condenseData += [quizData]
@@ -430,20 +431,32 @@ for user in sourceData[1:]:
                     (OutputData[user[4]])[i] += [[quiz[0]] + attempt]
 
 
+print(condenseDict)
+
 #NEW
 for user in sourceData[1:]:
+    outputDict[user[4]] = {}
+    for quiz in condenseDict:
+        outputDict[user[4]][quiz] = {}
+        outputDict[user[4]][quiz]['passingScore'] = condenseDict[quiz]['passingScore'] 
+        for userGroup in userGroups:
+            outputDict[user[4]][quiz][userGroup] = {}
+
+
+for user in sourceData[1:]:
+   
+    print(user[4])
+    
     for quiz in condenseDict:
         
-        # for the added by field
-        outputDict[user[4]] = {}
-        
-        for attempt in condenseDict[quiz]:
+        for uid in condenseDict[quiz]['attempts']:
             
-            outputDict[user[4]][quiz] = {}
-            
-            for userGroup in userGroups:
+            print(condenseDict[quiz]['attempts'][uid])
 
-                outputDict[user[4]][quiz][userGroup] = [[attempt],]
+            if (user[2] == condenseDict[quiz]['attempts'][uid]['email']):  
+                for userGroup in userGroups: 
+                    if (condenseDict[quiz]['attempts'][uid]['group'] == userGroup):
+                        outputDict[user[4]][quiz][userGroup][uid] = condenseDict[quiz]['attempts'][uid]
 
 # ----------------------------------------------------------------------------- 
 # Print the Dictionary
@@ -460,12 +473,36 @@ for user in sourceData[1:]:
 
 #print(json.dumps(condenseDict))
 
-print(condenseDict)
+# print(outputDict)
 
-for quiz in condenseDict:
-    for attempt in condenseDict[quiz]:
-        print (attempt)
 
-#print(json.dumps(outputDict))
+#print(condenseDict)
+
+with open('output.json', 'w+') as outfile:
+    json.dump(outputDict, outfile)
+
+with open('output.json', 'r') as outfile:
+    with open('output2.json', 'w+') as outfile2:
+        for line in outfile:
+            indent = 0
+            for char in line:
+                
+                temp = ''
+               
+                if (char == '{'):
+                    temp += '\n'
+                    indent += 1
+                    for i in range(indent):
+                        temp += '\t'
+
+                if (char == ','):
+                    temp += '\n'
+                    for i in range(indent):
+                        temp += '\t'
+
+                if (char == '}'):
+                    indent -= 1
+
+                outfile2.write(char + temp)
 
 # ----------------------------------------------------------------------------- 
